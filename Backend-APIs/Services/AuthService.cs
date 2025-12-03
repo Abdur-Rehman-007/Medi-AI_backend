@@ -43,6 +43,8 @@ namespace Backend_APIs.Services
                     PasswordHash = passwordHash,
                     FullName = registerDto.FullName,
                     Role = registerDto.Role,
+                    Department = registerDto.Department,
+                    RegistrationNumber = registerDto.RegistrationNumber,
                     PhoneNumber = registerDto.PhoneNumber,
                     DateOfBirth = registerDto.DateOfBirth,
                     Gender = registerDto.Gender,

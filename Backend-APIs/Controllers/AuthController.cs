@@ -25,17 +25,32 @@ namespace Backend_APIs.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid request data",
+                    Data = ModelState
+                });
             }
 
             var (success, message) = await _authService.RegisterAsync(registerDto);
 
             if (!success)
             {
-                return BadRequest(new { message });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = message,
+                    Data = null
+                });
             }
 
-            return Ok(new { message });
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = message,
+                Data = null
+            });
         }
 
         /// <summary>
@@ -46,21 +61,37 @@ namespace Backend_APIs.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid request data",
+                    Data = null
+                });
             }
 
             var (success, message, token, user) = await _authService.VerifyOtpAsync(verifyOtpDto);
 
             if (!success)
             {
-                return BadRequest(new { message });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = message,
+                    Data = null
+                });
             }
 
-            return Ok(new
+            var response = new AuthDataResponse
             {
-                message,
-                token,
-                user
+                Token = token!,
+                User = MapToUserResponseDto(user!)
+            };
+
+            return Ok(new ApiResponse<AuthDataResponse>
+            {
+                Success = true,
+                Message = message,
+                Data = response
             });
         }
 
@@ -72,21 +103,37 @@ namespace Backend_APIs.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid request data",
+                    Data = null
+                });
             }
 
             var (success, message, token, user) = await _authService.LoginAsync(loginDto);
 
             if (!success)
             {
-                return BadRequest(new { message });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = message,
+                    Data = null
+                });
             }
 
-            return Ok(new
+            var response = new AuthDataResponse
             {
-                message,
-                token,
-                user
+                Token = token!,
+                User = MapToUserResponseDto(user!)
+            };
+
+            return Ok(new ApiResponse<AuthDataResponse>
+            {
+                Success = true,
+                Message = message,
+                Data = response
             });
         }
 
@@ -100,7 +147,12 @@ namespace Backend_APIs.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null)
             {
-                return Unauthorized(new { message = "Invalid token" });
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid token",
+                    Data = null
+                });
             }
 
             var userId = int.Parse(userIdClaim.Value);
@@ -108,10 +160,20 @@ namespace Backend_APIs.Controllers
 
             if (user == null)
             {
-                return NotFound(new { message = "User not found" });
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = null
+                });
             }
 
-            return Ok(user);
+            return Ok(new ApiResponse<UserResponseDto>
+            {
+                Success = true,
+                Message = "User retrieved successfully",
+                Data = MapToUserResponseDto(user)
+            });
         }
 
         /// <summary>
@@ -126,6 +188,29 @@ namespace Backend_APIs.Controllers
                 timestamp = DateTime.UtcNow,
                 message = "MediAI Backend API is running"
             });
+        }
+
+        /// <summary>
+        /// Map UserDto to UserResponseDto with Flutter-friendly naming
+        /// </summary>
+        private UserResponseDto MapToUserResponseDto(UserDto user)
+        {
+            return new UserResponseDto
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                FullName = user.FullName,
+                Role = user.Role,
+                Department = user.Department,
+                RegistrationNumber = user.RegistrationNumber,
+                PhoneNumber = user.PhoneNumber,
+                DateOfBirth = user.DateOfBirth?.ToString("yyyy-MM-dd"),
+                Gender = user.Gender,
+                Address = user.Address,
+                ProfileImageUrl = user.ProfileImageUrl,
+                IsEmailVerified = user.IsEmailVerified ?? false,
+                IsActive = user.IsActive ?? true
+            };
         }
     }
 }
