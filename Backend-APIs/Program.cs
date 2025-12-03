@@ -22,6 +22,7 @@ namespace Backend_APIs
             // Add Services
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IUserService, UserService>();
 
             // Configure JWT Authentication
             var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -107,6 +108,9 @@ namespace Backend_APIs
             }
 
             app.UseHttpsRedirection();
+
+            // Enable serving static files (for profile photos)
+            app.UseStaticFiles();
 
             app.UseCors("AllowAll");
 
