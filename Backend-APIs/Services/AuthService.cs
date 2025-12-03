@@ -75,7 +75,7 @@ namespace Backend_APIs.Services
                 // Send OTP via email
                 var emailSent = await _emailService.SendOtpEmailAsync(user.Email, user.FullName, otp);
 
-                return (true, $"Registration successful! OTP sent to {registerDto.Email}. Please check your email (or console in development mode).");
+                return (true, $"Registration successful! OTP sent to email");
             }
             catch (Exception ex)
             {
