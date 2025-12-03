@@ -191,6 +191,114 @@ namespace Backend_APIs.Controllers
         }
 
         /// <summary>
+        /// Request password reset
+        /// </summary>
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid request data",
+                    Data = null
+                });
+            }
+
+            var (success, message) = await _authService.ForgotPasswordAsync(forgotPasswordDto);
+
+            if (!success)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = message,
+                    Data = null
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = message,
+                Data = null
+            });
+        }
+
+        /// <summary>
+        /// Reset password with token
+        /// </summary>
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid request data",
+                    Data = null
+                });
+            }
+
+            var (success, message) = await _authService.ResetPasswordAsync(resetPasswordDto);
+
+            if (!success)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = message,
+                    Data = null
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = message,
+                Data = null
+            });
+        }
+
+        /// <summary>
+        /// Resend OTP for email verification
+        /// </summary>
+        [HttpPost("resend-otp")]
+        public async Task<IActionResult> ResendOtp([FromBody] ResendOtpDto resendOtpDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid request data",
+                    Data = null
+                });
+            }
+
+            var (success, message) = await _authService.ResendOtpAsync(resendOtpDto);
+
+            if (!success)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = message,
+                    Data = null
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = message,
+                Data = null
+            });
+        }
+
+        /// <summary>
         /// Map UserDto to UserResponseDto with Flutter-friendly naming
         /// </summary>
         private UserResponseDto MapToUserResponseDto(UserDto user)

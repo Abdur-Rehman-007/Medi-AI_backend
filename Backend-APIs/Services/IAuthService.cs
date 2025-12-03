@@ -8,5 +8,12 @@ namespace Backend_APIs.Services
         Task<(bool Success, string Message, string? Token, UserDto? User)> VerifyOtpAsync(VerifyOtpDto verifyOtpDto);
         Task<(bool Success, string Message, string? Token, UserDto? User)> LoginAsync(LoginDto loginDto);
         Task<UserDto?> GetUserByIdAsync(int userId);
+        
+        // Password Reset
+        Task<(bool Success, string Message)> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto);
+        Task<(bool Success, string Message)> ResetPasswordAsync(ResetPasswordDto resetPasswordDto);
+        
+        // OTP Management
+        Task<(bool Success, string Message)> ResendOtpAsync(ResendOtpDto resendOtpDto);
     }
 }

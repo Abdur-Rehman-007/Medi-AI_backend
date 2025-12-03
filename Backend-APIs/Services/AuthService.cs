@@ -230,5 +230,155 @@ namespace Backend_APIs.Services
                 LastLoginAt = user.LastLoginAt
             };
         }
+
+        public async Task<(bool Success, string Message)> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == forgotPasswordDto.Email);
+                if (user == null)
+                {
+                    // Return success even if user not found (security best practice)
+                    return (true, "If the email exists, a password reset code has been sent");
+                }
+
+                // Generate reset token (6-digit code)
+                var resetToken = GenerateOtp();
+
+                // Check if there's an existing unused token
+                var existingToken = await _context.Passwordresettokens
+                    .Where(t => t.UserId == user.Id && t.IsUsed == false && t.ExpiresAt > DateTime.UtcNow)
+                    .FirstOrDefaultAsync();
+
+                if (existingToken != null)
+                {
+                    // Update existing token
+                    existingToken.Token = resetToken;
+                    existingToken.ExpiresAt = DateTime.UtcNow.AddMinutes(10);
+                    existingToken.CreatedAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    // Create new token record
+                    var tokenRecord = new Passwordresettoken
+                    {
+                        UserId = user.Id,
+                        Token = resetToken,
+                        ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                        IsUsed = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Passwordresettokens.Add(tokenRecord);
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Send reset token via email
+                await _emailService.SendOtpEmailAsync(user.Email, user.FullName, resetToken);
+
+                return (true, "Password reset code sent to your email");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Failed to process request: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool Success, string Message)> ResetPasswordAsync(ResetPasswordDto resetPasswordDto)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == resetPasswordDto.Email);
+                if (user == null)
+                {
+                    return (false, "Invalid email or token");
+                }
+
+                var tokenRecord = await _context.Passwordresettokens
+                    .Where(t => t.UserId == user.Id && t.Token == resetPasswordDto.Token && t.IsUsed == false)
+                    .OrderByDescending(t => t.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (tokenRecord == null)
+                {
+                    return (false, "Invalid or expired reset token");
+                }
+
+                if (tokenRecord.ExpiresAt < DateTime.UtcNow)
+                {
+                    return (false, "Reset token has expired");
+                }
+
+                // Hash new password
+                var newPasswordHash = BCrypt.Net.BCrypt.HashPassword(resetPasswordDto.NewPassword);
+
+                // Update password
+                user.PasswordHash = newPasswordHash;
+                user.UpdatedAt = DateTime.UtcNow;
+
+                // Mark token as used
+                tokenRecord.IsUsed = true;
+
+                await _context.SaveChangesAsync();
+
+                return (true, "Password reset successful. You can now login with your new password");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Failed to reset password: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool Success, string Message)> ResendOtpAsync(ResendOtpDto resendOtpDto)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == resendOtpDto.Email);
+                if (user == null)
+                {
+                    return (false, "User not found");
+                }
+
+                if (user.IsEmailVerified == true)
+                {
+                    return (false, "Email is already verified");
+                }
+
+                // Generate new OTP
+                var otp = GenerateOtp();
+
+                // Mark old OTPs as used
+                var oldOtps = await _context.Emailverificationotps
+                    .Where(o => o.UserId == user.Id && o.IsUsed == false)
+                    .ToListAsync();
+
+                foreach (var oldOtp in oldOtps)
+                {
+                    oldOtp.IsUsed = true;
+                }
+
+                // Create new OTP record
+                var otpRecord = new Emailverificationotp
+                {
+                    UserId = user.Id,
+                    Otp = otp,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                    IsUsed = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Emailverificationotps.Add(otpRecord);
+                await _context.SaveChangesAsync();
+
+                // Send new OTP via email
+                await _emailService.SendOtpEmailAsync(user.Email, user.FullName, otp);
+
+                return (true, "OTP has been resent to your email");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Failed to resend OTP: {ex.Message}");
+            }
+        }
     }
 }
